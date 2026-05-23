@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusBite — College Canteen Pre-Order System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🍱 CampusBite</div>
+        <div class="nav-links">
+            <a href="#menu" class="nav-link active" onclick="showSection('menu')">Menu</a>
+            <a href="#orders" class="nav-link" onclick="showSection('orders')">Orders</a>
+            <a href="#analytics" class="nav-link" onclick="showSection('analytics')">Analytics</a>
+            <a href="#alerts" class="nav-link" onclick="showSection('alerts')">Alerts</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- MENU SECTION -->
+        <section id="menu" class="section active">
+            <div class="section-header">
+                <h2>Today's Menu</h2>
+                <select id="canteen-select" onchange="loadMenu()">
+                    <option value="">Select Canteen...</option>
+                </select>
+            </div>
+            <div id="menu-grid" class="menu-grid"></div>
+        </section>
+
+        <!-- ORDERS SECTION -->
+        <section id="orders" class="section">
+            <div class="section-header">
+                <h2>Order Dashboard</h2>
+                <button class="btn-refresh" onclick="loadOrders()">Refresh</button>
+            </div>
+            <div id="orders-table-wrapper"></div>
+        </section>
+
+        <!-- ANALYTICS SECTION -->
+        <section id="analytics" class="section">
+            <div class="section-header">
+                <h2>Analytics</h2>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="card">
+                    <h3>Top Items Today</h3>
+                    <select id="analytics-canteen" onchange="loadTopItems()">
+                        <option value="">Select Canteen...</option>
+                    </select>
+                    <div id="top-items-list"></div>
+                </div>
+
+                <div class="card">
+                    <h3>🎯 Greedy Budget Recommender</h3>
+                    <p class="card-desc">Enter your budget and get the best item combination using the Fractional Knapsack algorithm.</p>
+                    <div class="budget-input">
+                        <input type="number" id="budget-input" placeholder="Enter budget in ₹" min="10">
+                        <button class="btn-primary" onclick="loadGreedy()">Recommend</button>
+                    </div>
+                    <div id="greedy-result"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ALERTS SECTION -->
+        <section id="alerts" class="section">
+            <div class="section-header">
+                <h2>Staff Alerts</h2>
+                <button class="btn-refresh" onclick="loadAlerts()">Refresh</button>
+            </div>
+            <div id="alerts-list"></div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
