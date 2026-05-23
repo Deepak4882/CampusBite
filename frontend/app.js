@@ -22,20 +22,25 @@ async function loadCanteens() {
   const menuSelect = document.getElementById("canteen-select");
   const analyticsSelect = document.getElementById("analytics-canteen");
 
+  menuSelect.innerHTML = `<option value="">Select Canteen...</option>`;
+  analyticsSelect.innerHTML = `<option value="">Select Canteen...</option>`;
+
   canteens.forEach((c) => {
-    const opt1 = new Option(c.name, c.canteen_id);
-    const opt2 = new Option(c.name, c.canteen_id);
-    menuSelect.add(opt1);
-    analyticsSelect.add(opt2);
+    menuSelect.innerHTML += `<option value="${c.canteen_id}">${c.name}</option>`;
+    analyticsSelect.innerHTML += `<option value="${c.canteen_id}">${c.name}</option>`;
   });
 }
 
 // ── Menu ──────────────────────────────────────────
 async function loadMenu() {
   const canteen_id = document.getElementById("canteen-select").value;
-  if (!canteen_id) return;
-
   const grid = document.getElementById("menu-grid");
+
+  if (!canteen_id) {
+    grid.innerHTML = "";
+    return;
+  }
+
   grid.innerHTML = `<div class="loading">Loading menu...</div>`;
 
   const res = await fetch(`${API}/menu/${canteen_id}`);
@@ -119,9 +124,13 @@ async function loadOrders() {
 // ── Top Items ─────────────────────────────────────
 async function loadTopItems() {
   const canteen_id = document.getElementById("analytics-canteen").value;
-  if (!canteen_id) return;
-
   const list = document.getElementById("top-items-list");
+
+  if (!canteen_id) {
+    list.innerHTML = "";
+    return;
+  }
+
   list.innerHTML = `<div class="loading">Loading...</div>`;
 
   const res = await fetch(`${API}/analytics/top-items/${canteen_id}`);
@@ -145,9 +154,9 @@ async function loadTopItems() {
     .join("");
 }
 
-// ── Greedy Recommender ────────────────────────────
+// ── Greedy Recommender (Bug 1 Fixed) ─────────────
 async function loadGreedy() {
-  const budget = document.getElementById("budget-input").value;
+  const budget = parseFloat(document.getElementById("budget-input").value);
   if (!budget || budget <= 0) {
     alert("Please enter a valid budget.");
     return;
@@ -156,29 +165,70 @@ async function loadGreedy() {
   const result = document.getElementById("greedy-result");
   result.innerHTML = `<div class="loading">Calculating...</div>`;
 
-  const res = await fetch(`${API}/analytics/greedy-recommender/${budget}`);
-  const data = await res.json();
+  const res = await fetch(`${API}/menu/1`);
+  const allItems = await res.json();
 
-  if (data.selected_items.length === 0) {
+  // Get available items from all canteens
+  const menuRes = await fetch(`${API}/analytics/greedy-recommender/${budget}`);
+  const data = await menuRes.json();
+
+  // Sort by value per rupee descending
+  const items = data.selected_items;
+
+  if (items.length === 0) {
+    result.innerHTML = `<div class="empty-state">Budget too low for any item.</div>`;
+    return;
+  }
+
+  // Greedy with quantity — keep buying best value item until budget runs out
+  const fullRes = await fetch(`${API}/canteens`);
+  const canteens = await fullRes.json();
+
+  // Re-fetch all available items for proper greedy with quantities
+  const greedyRes = await fetch(`${API}/analytics/greedy-recommender/999999`);
+  const allData = await greedyRes.json();
+  const sortedItems = allData.selected_items;
+
+  let remaining = budget;
+  const selected = [];
+
+  for (const item of sortedItems) {
+    if (remaining <= 0) break;
+    const maxQty = Math.floor(remaining / item.price);
+    if (maxQty > 0) {
+      selected.push({
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        quantity: maxQty,
+        subtotal: maxQty * item.price,
+      });
+      remaining -= maxQty * item.price;
+    }
+  }
+
+  const totalSpent = budget - remaining;
+
+  if (selected.length === 0) {
     result.innerHTML = `<div class="empty-state">Budget too low for any item.</div>`;
     return;
   }
 
   result.innerHTML = `
-        ${data.selected_items
+        ${selected
           .map(
             (item) => `
             <div class="greedy-item">
                 <span>${item.name} <small style="color:#aaa">(${item.category})</small></span>
-                <span>₹${item.price.toFixed(2)}</span>
+                <span>x${item.quantity} = ₹${item.subtotal.toFixed(2)}</span>
             </div>
         `,
           )
           .join("")}
         <div class="greedy-summary">
-            Budget: ₹${data.budget} &nbsp;|&nbsp;
-            Spent: ₹${(data.budget - data.remaining).toFixed(2)} &nbsp;|&nbsp;
-            Remaining: ₹${data.remaining.toFixed(2)}
+            Budget: ₹${budget} &nbsp;|&nbsp;
+            Spent: ₹${totalSpent.toFixed(2)} &nbsp;|&nbsp;
+            Remaining: ₹${remaining.toFixed(2)}
         </div>
     `;
 }
